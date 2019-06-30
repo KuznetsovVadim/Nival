@@ -91,6 +91,47 @@ namespace Assets.Scripts.Helpers
         }
 
         /// <summary>
+        /// Проверяет возможность достичь точки назначения
+        /// </summary>
+        /// <param name="SourceMatrix"></param>
+        /// <param name="StartPoint"></param>
+        /// <param name="TargetPoint"></param>
+        /// <returns></returns>
+        public static bool CanReach(FieldPoint[,] SourceMatrix, FieldPoint StartPoint, FieldPoint TargetPoint)
+        {
+            Queue<PointModel> cellsQueue = new Queue<PointModel>();
+
+            PointModel[,] matrix = SetMatrix(SourceMatrix);
+
+            ref PointModel start = ref matrix[StartPoint.X, StartPoint.Z];
+            ref PointModel end = ref matrix[TargetPoint.X, TargetPoint.Z];
+
+            int step = 2;
+
+            start.SetStep(1);
+
+            cellsQueue.Enqueue(start);
+
+            PointModel last = cellsQueue.Last();
+
+            while (end.StepNumber == 0 & cellsQueue.Count > 0)
+            {
+                AllDirections(matrix, cellsQueue, step, WaveMode.Steps);
+
+                if (cellsQueue.Peek().Equals(last))
+                {
+                    step++;
+                    last = cellsQueue.Last();
+                }
+
+                cellsQueue.Dequeue();
+            }
+
+            if (end.StepNumber == 0) return false;
+            return true;
+        }
+
+        /// <summary>
         /// Проверяет есть ли выход из текущего положения юнита
         /// </summary>
         /// <param name="SourceMatrix"></param>

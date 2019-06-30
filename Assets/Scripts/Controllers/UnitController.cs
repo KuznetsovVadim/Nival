@@ -43,7 +43,6 @@ namespace Assets.Scripts.Controllers
             {
                 MapChanged += Unit.GetMatrixUpdate;
                 switchBehavior += Unit.SwitchBehavior;
-                Unit.GetReserveMarkedPoint += SendReservedMarkedPoint;
                 Unit.GetStartData(FieldMatrix);
             }
         }
@@ -58,6 +57,7 @@ namespace Assets.Scripts.Controllers
             if(FieldMatrix != null & MarkedCells != null)
             {
                 MapChanged.Invoke(FieldMatrix);
+                markedCells = MarkedCells;
                 SendMarkedPointsToUnits();
             }
             else
@@ -68,6 +68,7 @@ namespace Assets.Scripts.Controllers
                 }
                 else
                 {
+                    markedCells = MarkedCells;
                     SendMarkedPointsToUnits();
                 }
             }
@@ -78,49 +79,41 @@ namespace Assets.Scripts.Controllers
         /// </summary>
         private void SendMarkedPointsToUnits()
         {
-            int counter = 0;
+            reservePoints = new List<FieldPoint>();
 
-            for(int i = 0; i < units.Length; i++)
+            foreach (var item in markedCells)
             {
-                if(counter < markedCells.Count)
-                {
-                    units[i].GetMarkedPoint(markedCells[counter]);
-                    counter++;
-                }
-                else
-                {
-                    units[i].GetMarkedPoint(null);
-                }
+                reservePoints.Add(item);
             }
 
-            if(counter < markedCells.Count)
+            switch (units[0].Roam)
             {
-                for (int i = counter; i < markedCells.Count; i++)
-                {
-                    reservePoints.Add(markedCells[counter]);
-                }
-            }
-            else
-            {
-                reservePoints.Clear();
-            }
-        }
+                case true:
 
-        /// <summary>
-        /// Получает ячейки из резерва
-        /// </summary>
-        /// <returns></returns>
-        private FieldPoint SendReservedMarkedPoint()
-        {
-            FieldPoint Temp = null;
+                    for (int i = 0; i < units.Length; i++)
+                    {
+                        units[i].GetMarkedPointsUpdate(reservePoints);
+                    }
 
-            if (reservePoints.Count > 0)
-            {
-                Temp = reservePoints[0];
-                reservePoints.Remove(reservePoints[0]);
+                    break;
+
+                case false:
+
+                    for (int i = 0; i < units.Length; i++)
+                    {
+                        if(units[i].HasMarkedPoint())
+                        {
+                            reservePoints.Remove(units[i].MarkedCell);
+                        }
+                    }
+
+                    for (int i = 0; i < units.Length; i++)
+                    {
+                        units[i].GetMarkedPointsUpdate(reservePoints);
+                    }
+
+                    break;
             }
-
-            return Temp;
         }
 
         /// <summary>

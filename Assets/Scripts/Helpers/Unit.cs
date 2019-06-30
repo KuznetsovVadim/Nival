@@ -1,4 +1,5 @@
 ﻿using Assets.Scripts.Models;
+using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -27,9 +28,12 @@ namespace Assets.Scripts.Helpers
         /// <summary>
         /// Отмеченная ячека на игровом поле
         /// </summary>
-        private FieldPoint markedCell;
+        public FieldPoint MarkedCell { get; private set; }
 
-        public event GetReserve GetReserveMarkedPoint;
+        /// <summary>
+        /// Списко отмеченных точек
+        /// </summary>
+        private List<FieldPoint> markedCells;
 
         #region Поиск пути и положение
 
@@ -73,14 +77,16 @@ namespace Assets.Scripts.Helpers
         private int fieldSide;
 
         private int counter;
-        
-        private bool roam = true;
+
+        public bool Roam { get; private set; } = true;
 
         private bool readyToMove = false;
 
         private bool cellToMove = false;
 
         private bool deadEnd = false;
+
+        private bool noMarkedPointToReach = false;
 
         public bool CanMove { get; private set; } = true;
 
@@ -126,17 +132,28 @@ namespace Assets.Scripts.Helpers
         }
 
         /// <summary>
+        /// Проверяет наличие отмеченной точки
+        /// </summary>
+        /// <returns></returns>
+        public bool HasMarkedPoint()
+        {
+            if(MarkedCell != null && MarkedCell.Marked) return true;
+            MarkedCell = null;
+            return false;
+        }
+
+        /// <summary>
         /// Метод получения отмеченной точки на карте
         /// </summary>
         /// <param name="MarkedPoint">Отмеченная на карте точка</param>
-        public void GetMarkedPoint(FieldPoint MarkedCell)
+        public void GetMarkedPointsUpdate(List<FieldPoint> markedCells)
         {
-            this.markedCell = MarkedCell;
+            this.markedCells = markedCells;
+            noMarkedPointToReach = false;
 
-            if(!roam & (markedCell != null && !markedCell.Equals(targetCell)))
+            if(!Roam & (MarkedCell == null || !MarkedCell.Marked))
             {
-                CanMove = false;
-                readyToMove = false;
+                SetMarkedPoint();
             }
         }
 
@@ -145,8 +162,38 @@ namespace Assets.Scripts.Helpers
         /// </summary>
         public void SwitchBehavior()
         {
-            roam = !roam;
+            Roam = !Roam;
             CanMove = false;
+
+            if(!Roam)
+            {
+                SetMarkedPoint();
+            }
+            else
+            {
+                MarkedCell = null;
+            }
+        }
+
+        /// <summary>
+        /// Находим отмеченную точку
+        /// </summary>
+        private void SetMarkedPoint()
+        {
+            if(noMarkedPointToReach) return;
+
+            for (int i = 0; i < markedCells.Count; i++)
+            {
+                if (CanReachPoint(markedCells[i]))
+                {
+                    MarkedCell = markedCells[i];
+                    markedCells.Remove(markedCells[i]);
+                    CanMove = false;
+                    return;
+                }
+            }
+            MarkedCell = null;
+            noMarkedPointToReach = true;
         }
 
         public void Update()
@@ -302,7 +349,7 @@ namespace Assets.Scripts.Helpers
         {
             if(deadEnd)return;
 
-            switch(roam)
+            switch(Roam)
             {
                 case true:
 
@@ -366,7 +413,7 @@ namespace Assets.Scripts.Helpers
 
                 case false:
 
-                    if(markedCell == null)
+                    if(MarkedCell == null)
                     {
                         GetRandomPoint(RandomMode.NoMarked);
 
@@ -388,7 +435,13 @@ namespace Assets.Scripts.Helpers
 
                     else
                     {
-                        targetCell = markedCell;
+                        if(!MarkedCell.Marked)
+                        {
+                            MarkedCell = null;
+                            return;
+                        }
+
+                        targetCell = MarkedCell;
 
                         wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
 
@@ -396,8 +449,8 @@ namespace Assets.Scripts.Helpers
                         {
                             deadEnd = WaveAlgorithm.NoWay(fieldMatrix, currentCell);
                             if (deadEnd) return;
-                            markedCell = GetReserveMarkedPoint?.Invoke();
-                            if (markedCell == null) return;
+                            if (!noMarkedPointToReach) SetMarkedPoint();
+                            if (MarkedCell == null) return;
                             Wave();
                         }
 
@@ -422,6 +475,17 @@ namespace Assets.Scripts.Helpers
             wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
 
             GetNextCellToMove();
+        }
+
+        /// <summary>
+        /// Проверяет возможность дойти до точки
+        /// </summary>
+        /// <param name="targetCell"></param>
+        /// <returns></returns>
+        private bool CanReachPoint(FieldPoint targetCell)
+        {
+            if (!targetCell.Marked) return false;
+            return WaveAlgorithm.CanReach(fieldMatrix, currentCell, targetCell);
         }
     }
 }
