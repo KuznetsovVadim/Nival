@@ -320,7 +320,7 @@ namespace Assets.Scripts.Helpers
         {
             temp = fieldMatrix[Random.Range(0, fieldSide), Random.Range(0, fieldSide)];
 
-            if (temp.Equals(currentCell) | temp.Blocked)
+            if (temp.Blocked)
             {
                 GetRandomPoint();
             }
@@ -409,6 +409,8 @@ namespace Assets.Scripts.Helpers
                         {
                             deadEnd = WaveAlgorithm.NoWay(fieldMatrix, currentCell);
                             if (deadEnd) return;
+                            GetRandomPoint();
+                            Wave();
                         }
 
                         cellToMove = false;
