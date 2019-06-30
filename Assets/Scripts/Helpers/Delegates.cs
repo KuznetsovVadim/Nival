@@ -15,13 +15,6 @@ namespace Assets.Scripts.Helpers
     public delegate void UnitAction(bool IsRoam);
 
     public delegate FieldPoint GetReserve();
-
-    public enum RandomMode
-    {
-        All,
-        NoMarked
-    }
-
     
     public enum MouseClick
     {

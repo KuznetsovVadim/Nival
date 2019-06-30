@@ -122,6 +122,7 @@ namespace Assets.Scripts.Controllers
         public void SwitchUnits()
         {
             switchBehavior.Invoke();
+            SendMarkedPointsToUnits();
         }
 
         public override void ControllerUpdate()

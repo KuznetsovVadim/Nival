@@ -99,6 +99,7 @@ namespace Assets.Scripts.Helpers
         {
             this.Name = Name;
             this.UnitObject = UnitObject;
+            markedCells = new List<FieldPoint>();
         }
 
         /// <summary>
@@ -127,7 +128,8 @@ namespace Assets.Scripts.Helpers
         /// <param name="FieldMatrix">Матрица поля</param>
         public void GetMatrixUpdate(FieldPoint[,] FieldMatrix)
         {
-            this.fieldMatrix = FieldMatrix;
+            fieldMatrix = FieldMatrix;
+            noMarkedPointToReach = false;
             deadEnd = false;
         }
 
@@ -151,7 +153,7 @@ namespace Assets.Scripts.Helpers
             this.markedCells = markedCells;
             noMarkedPointToReach = false;
 
-            if(!Roam & (MarkedCell == null || !MarkedCell.Marked))
+            if (!Roam & (MarkedCell == null || !MarkedCell.Marked))
             {
                 SetMarkedPoint();
             }
@@ -172,6 +174,7 @@ namespace Assets.Scripts.Helpers
             else
             {
                 MarkedCell = null;
+                noMarkedPointToReach = false;
             }
         }
 
@@ -309,37 +312,20 @@ namespace Assets.Scripts.Helpers
                 cellToMove = false;
             }
         }
-
+        
         /// <summary>
         /// Получение случайной точке на игровом поле, в качестве точки назначения
         /// </summary>
-        private void GetRandomPoint(RandomMode RandomMode)
+        private void GetRandomPoint()
         {
             temp = fieldMatrix[Random.Range(0, fieldSide), Random.Range(0, fieldSide)];
 
-            switch (RandomMode)
+            if (temp.Equals(currentCell) | temp.Blocked)
             {
-                case RandomMode.All:
-
-                    if (temp.Equals(currentCell) | temp.Blocked)
-                    {
-                        GetRandomPoint(RandomMode);
-                    }
-                    targetCell = temp;
-
-                    break;
-
-                case RandomMode.NoMarked:
-
-                    if (temp.Equals(currentCell) | temp.Blocked | temp.Marked)
-                    {
-                        GetRandomPoint(RandomMode);
-                    }
-                    targetCell = temp;
-
-                    break;
+                GetRandomPoint();
             }
-            
+            targetCell = temp;
+
         }
 
         /// <summary>
@@ -355,7 +341,7 @@ namespace Assets.Scripts.Helpers
 
                     if (targetCell == null)
                     {
-                        GetRandomPoint(RandomMode.All);
+                        GetRandomPoint();
 
                         wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
 
@@ -368,7 +354,7 @@ namespace Assets.Scripts.Helpers
                                 targetCell = null;
                                 return;
                             }
-                            GetRandomPoint(RandomMode.All);
+                            GetRandomPoint();
                             Wave();
                         }
 
@@ -395,7 +381,7 @@ namespace Assets.Scripts.Helpers
                                 targetCell = null;
                                 return;
                             }
-                            GetRandomPoint(RandomMode.All);
+                            GetRandomPoint();
                             Wave();
                         }
 
@@ -415,7 +401,7 @@ namespace Assets.Scripts.Helpers
 
                     if(MarkedCell == null)
                     {
-                        GetRandomPoint(RandomMode.NoMarked);
+                        GetRandomPoint();
 
                         wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
 
@@ -470,7 +456,7 @@ namespace Assets.Scripts.Helpers
         /// </summary>
         private void FirstWave()
         {
-            GetRandomPoint(RandomMode.All);
+            GetRandomPoint();
 
             wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
 
