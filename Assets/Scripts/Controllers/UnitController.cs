@@ -2,9 +2,7 @@
 using Assets.Scripts.Helpers;
 using Assets.Scripts.Models;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 
 
 namespace Assets.Scripts.Controllers
@@ -14,17 +12,17 @@ namespace Assets.Scripts.Controllers
     /// </summary>
     public class UnitController:BaseController
     {
-        private Unit[] Units;
+        private Unit[] units;
 
-        private FieldPoint[,] FieldMatrix;
+        private FieldPoint[,] fieldMatrix;
 
-        private List<FieldPoint> MarkedCells;
+        private List<FieldPoint> markedCells;
 
-        private List<FieldPoint> ReservePoints;
+        private List<FieldPoint> reservePoints;
 
         public event MapChanged MapChanged;
 
-        private event Action SwitchBehavior;
+        private event Action switchBehavior;
 
         /// <summary>
         /// Создает контроллер управляющий юнитами
@@ -34,17 +32,17 @@ namespace Assets.Scripts.Controllers
         /// <param name="MarkedCells">Список "отмеченных" ячеек игрового поля</param>
         public UnitController(Unit[] Units, FieldPoint[,] FieldMatrix, List<FieldPoint> MarkedCells)
         {
-            this.Units = Units;
-            this.FieldMatrix = FieldMatrix;
-            this.MarkedCells = MarkedCells;
-            ReservePoints = new List<FieldPoint>();
+            units = Units;
+            fieldMatrix = FieldMatrix;
+            markedCells = MarkedCells;
+            reservePoints = new List<FieldPoint>();
 
             MainScript.GetMainScript.FieldScript.FieldChanged += SetChanges;
 
-            foreach (var Unit in Units)
+            foreach (var Unit in units)
             {
                 MapChanged += Unit.GetMatrixUpdate;
-                SwitchBehavior += Unit.SwitchBehavior;
+                switchBehavior += Unit.SwitchBehavior;
                 Unit.GetReserveMarkedPoint += SendReservedMarkedPoint;
                 Unit.GetStartData(FieldMatrix);
             }
@@ -59,8 +57,6 @@ namespace Assets.Scripts.Controllers
         {
             if(FieldMatrix != null & MarkedCells != null)
             {
-                this.FieldMatrix = FieldMatrix;
-
                 MapChanged.Invoke(FieldMatrix);
                 SendMarkedPointsToUnits();
             }
@@ -68,7 +64,6 @@ namespace Assets.Scripts.Controllers
             {
                 if(FieldMatrix != null)
                 {
-                    this.FieldMatrix = FieldMatrix;
                     MapChanged.Invoke(FieldMatrix);
                 }
                 else
@@ -85,29 +80,29 @@ namespace Assets.Scripts.Controllers
         {
             int counter = 0;
 
-            for(int i = 0; i < Units.Length; i++)
+            for(int i = 0; i < units.Length; i++)
             {
-                if(counter < MarkedCells.Count)
+                if(counter < markedCells.Count)
                 {
-                    Units[i].GetMarkedPoint(MarkedCells[counter]);
+                    units[i].GetMarkedPoint(markedCells[counter]);
                     counter++;
                 }
                 else
                 {
-                    Units[i].GetMarkedPoint(null);
+                    units[i].GetMarkedPoint(null);
                 }
             }
 
-            if(counter < MarkedCells.Count)
+            if(counter < markedCells.Count)
             {
-                for (int i = counter; i < MarkedCells.Count; i++)
+                for (int i = counter; i < markedCells.Count; i++)
                 {
-                    ReservePoints.Add(MarkedCells[counter]);
+                    reservePoints.Add(markedCells[counter]);
                 }
             }
             else
             {
-                ReservePoints.Clear();
+                reservePoints.Clear();
             }
         }
 
@@ -119,10 +114,10 @@ namespace Assets.Scripts.Controllers
         {
             FieldPoint Temp = null;
 
-            if (ReservePoints.Count > 0)
+            if (reservePoints.Count > 0)
             {
-                Temp = ReservePoints[0];
-                ReservePoints.Remove(ReservePoints[0]);
+                Temp = reservePoints[0];
+                reservePoints.Remove(reservePoints[0]);
             }
 
             return Temp;
@@ -133,12 +128,12 @@ namespace Assets.Scripts.Controllers
         /// </summary>
         public void SwitchUnits()
         {
-            SwitchBehavior.Invoke();
+            switchBehavior.Invoke();
         }
 
         public override void ControllerUpdate()
         {
-            foreach (var Unit in Units)
+            foreach (var Unit in units)
             {
                 Unit.Update();
             }
@@ -146,7 +141,7 @@ namespace Assets.Scripts.Controllers
 
         public override void ControllerLateUpdate(float Time)
         {
-            foreach (var Unit in Units)
+            foreach (var Unit in units)
             {
                 Unit.LateUpdate(Time);
             }

@@ -1,12 +1,6 @@
 ﻿using Assets.Scripts.BaseScripts;
 using Assets.Scripts.Helpers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace Assets.Scripts.Controllers
 {
@@ -15,12 +9,12 @@ namespace Assets.Scripts.Controllers
     /// </summary>
     public class InputController : BaseController
     {
-        private RaycastHit RayInfo;
-        private LayerMask Mask;
+        private RaycastHit rayInfo;
+        private LayerMask mask;
 
         public InputController(LayerMask Mask)
         {
-            this.Mask = Mask;
+            mask = Mask;
         }
 
         public override void ControllerUpdate()
@@ -43,9 +37,9 @@ namespace Assets.Scripts.Controllers
         {
             Ray Ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             
-            if(Physics.Raycast(Ray, out RayInfo, 200f, Mask))
+            if(Physics.Raycast(Ray, out rayInfo, 200f, mask))
             {
-                RayInfo.transform.gameObject.GetComponent<Cell>().OnClick(Click);
+                rayInfo.transform.gameObject.GetComponent<Cell>().OnClick(Click);
             }
         }
     }

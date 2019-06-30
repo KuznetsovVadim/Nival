@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using Assets.Scripts.Controllers;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -12,10 +10,10 @@ namespace Assets.Scripts.BaseScripts
     /// </summary>
     public class MainScript : MonoBehaviour
     {
-        [SerializeField] private GameObject Cell;
-        [SerializeField] private GameObject Unit;
-        [SerializeField] private LayerMask Mask;
-        [SerializeField] private Text Text;
+        [SerializeField] private GameObject cell;
+        [SerializeField] private GameObject unit;
+        [SerializeField] private LayerMask mask;
+        [SerializeField] private Text text;
 
         public Placement PlacementScript;
         public Field FieldScript;
@@ -29,11 +27,11 @@ namespace Assets.Scripts.BaseScripts
         {
             GetMainScript = this;
 
-            PlacementScript = new Placement(Cell, Unit);
+            PlacementScript = new Placement(cell, unit);
             FieldScript = new Field(PlacementScript.Field);
 
             UnitController = new UnitController(PlacementScript.Units, FieldScript.FieldMatrix, FieldScript.MarkedCells);
-            InputController = new InputController(Mask);
+            InputController = new InputController(mask);
         }
 
         private void Update()
@@ -53,8 +51,8 @@ namespace Assets.Scripts.BaseScripts
         public void SwitchUnits()
         {
             UnitController.SwitchUnits();
-            if (Text.text == "Follow") Text.text = "Roam";
-            else Text.text = "Follow";
+            if (text.text == "Follow") text.text = "Roam";
+            else text.text = "Follow";
         }
 
         /// <summary>

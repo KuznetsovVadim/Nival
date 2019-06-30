@@ -1,5 +1,4 @@
-﻿using Assets.Scripts.BaseScripts;
-using Assets.Scripts.Helpers;
+﻿using Assets.Scripts.Helpers;
 using UnityEngine;
 
 
@@ -10,19 +9,19 @@ namespace Assets.Scripts.Controllers
     /// </summary>
     public class Placement
     {
-        private GameObject Cell;
-        private GameObject Unit;
+        private GameObject cell;
+        private GameObject unit;
 
-        private GameObject CellTemp;
-        private GameObject UnitTemp;
+        private GameObject cellTemp;
+        private GameObject unitTemp;
 
-        private int FieldSide;
-        private int UnitsCount;
+        private int fieldSide;
+        private int unitsCount;
 
         public Cell[,] Field { get; }
 
         public Unit[] Units { get; }
-        
+
         /// <summary>
         /// Создает скрипт расстановки объектов на сцене
         /// </summary>
@@ -30,17 +29,17 @@ namespace Assets.Scripts.Controllers
         /// <param name="Unit">Юнит</param>
         public Placement(GameObject Cell, GameObject Unit)
         {
-            this.Cell = Cell;
-            this.Unit = Unit;
-            FieldSide = Random.Range(5, 10);
-            UnitsCount = Random.Range(5, 5);
+            cell = Cell;
+            unit = Unit;
+            fieldSide = Random.Range(5, 10);
+            unitsCount = Random.Range(5, 5);
             
-            Field = new Cell[FieldSide, FieldSide];
-            Units = new Unit[UnitsCount];
+            Field = new Cell[fieldSide, fieldSide];
+            Units = new Unit[unitsCount];
 
-            PlaceCells(FieldSide);
-            PlaceUnits(UnitsCount, FieldSide);
-            PlaceCamera(FieldSide-1);
+            PlaceCells(fieldSide);
+            PlaceUnits(unitsCount, fieldSide);
+            PlaceCamera(fieldSide - 1);
         }
 
         /// <summary>
@@ -57,9 +56,9 @@ namespace Assets.Scripts.Controllers
             {
                 for (int j = 0; j < Side; j++)
                 {
-                    CellTemp = GameObject.Instantiate(Cell, Position, Rotation);
-                    CellTemp.name = "Cell"+i + "" + j;
-                    Field[i, j] = CellTemp.GetComponent<Cell>();
+                    cellTemp = GameObject.Instantiate(cell, Position, Rotation);
+                    cellTemp.name = "Cell"+i + "" + j;
+                    Field[i, j] = cellTemp.GetComponent<Cell>();
 
                     Position.z += Offset;
                 }
@@ -83,9 +82,9 @@ namespace Assets.Scripts.Controllers
                 Position.x = Random.Range(0, Side - 1);
                 Position.z = Random.Range(0, Side - 1);
 
-                UnitTemp = GameObject.Instantiate(Unit, Position, Rotation);
-                UnitTemp.name = "Unit" + i;
-                Units[i] = new Unit(UnitTemp.name, UnitTemp);
+                unitTemp = GameObject.Instantiate(unit, Position, Rotation);
+                unitTemp.name = "Unit" + i;
+                Units[i] = new Unit(unitTemp.name, unitTemp);
             }
         }
 

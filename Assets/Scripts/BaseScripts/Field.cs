@@ -1,12 +1,6 @@
-﻿using Assets.Scripts.BaseScripts;
-using Assets.Scripts.Helpers;
+﻿using Assets.Scripts.Helpers;
 using Assets.Scripts.Models;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
 
 namespace Assets.Scripts.Controllers
 {
@@ -106,15 +100,15 @@ namespace Assets.Scripts.Controllers
         /// </summary>
         private void CreateMatrix(Cell[,] Field)
         {
-            int Side = (byte)Field.GetLength(0);
+            int side = (byte)Field.GetLength(0);
 
-            FieldMatrix = new FieldPoint[Side, Side];
+            FieldMatrix = new FieldPoint[side, side];
 
-            for (int i = 0; i < Side; i++)
+            for (int i = 0; i < side; i++)
             {
-                for (int j = 0; j < Side; j++)
+                for (int j = 0; j < side; j++)
                 {
-                    FieldMatrix[i, j] = Field[i, j].CreatePoint(Side-1);
+                    FieldMatrix[i, j] = Field[i, j].CreatePoint(side-1);
                 }
             }
         }

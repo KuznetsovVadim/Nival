@@ -1,7 +1,4 @@
 ﻿using Assets.Scripts.Models;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -25,17 +22,12 @@ namespace Assets.Scripts.Helpers
         /// <summary>
         /// Матрица игрового поля
         /// </summary>
-        private FieldPoint[,] FieldMatrix;
-
-        /// <summary>
-        /// Позиция в отмеченной ячеке на игровом поле
-        /// </summary>
-        private Vector3 MarkedPosition;
+        private FieldPoint[,] fieldMatrix;
 
         /// <summary>
         /// Отмеченная ячека на игровом поле
         /// </summary>
-        private FieldPoint MarkedCell;
+        private FieldPoint markedCell;
 
         public event GetReserve GetReserveMarkedPoint;
 
@@ -44,56 +36,51 @@ namespace Assets.Scripts.Helpers
         /// <summary>
         /// Конечная ячейка назначения юнита на игровом поле
         /// </summary>
-        public FieldPoint TargetCell { get; private set; }
+        private FieldPoint targetCell;
 
         /// <summary>
         /// Массив ячеек пути юнита до точки назначения
         /// </summary>
-        private FieldPoint[] WayPoints;
+        private FieldPoint[] wayPoints;
 
         /// <summary>
         /// Текущая ячека, в которой находится юнит
         /// </summary>
-        private FieldPoint CurrentCell;
+        private FieldPoint currentCell;
 
         /// <summary>
         /// Текущая позиция юнита
         /// </summary>
-        private Vector3 CurrentPosition;
-
-        /// <summary>
-        /// Ячейка игрового поля, в которой произошли последние изменения
-        /// </summary>
-        private FieldPoint LastChangedCell;
+        private Vector3 currentPosition;
 
         /// <summary>
         /// Следующая ячейка по пути маршрута юнита
         /// </summary>
-        private FieldPoint NextCell;
+        private FieldPoint nextCell;
 
         /// <summary>
         /// Текущее направление юнита
         /// </summary>
-        private Vector3 CurrentDirection;
+        private Vector3 currentDirection;
 
         /// <summary>
         /// Временная точка
         /// </summary>
-        private FieldPoint Temp;
+        private FieldPoint temp;
 
         #endregion
 
-        private int FieldSide;
+        private int fieldSide;
 
-        private int Counter;
+        private int counter;
         
-        private bool Roam = true;
+        private bool roam = true;
 
-        private bool ReadyToMove = false;
+        private bool readyToMove = false;
 
-        private bool CellToMove = false;
+        private bool cellToMove = false;
 
-        private bool DeadEnd = false;
+        private bool deadEnd = false;
 
         public bool CanMove { get; private set; } = true;
 
@@ -114,15 +101,15 @@ namespace Assets.Scripts.Helpers
         /// <param name="FieldMatrix">Матрица игрового поля</param>
         public void GetStartData(FieldPoint[,] FieldMatrix)
         {
-            this.FieldMatrix = FieldMatrix;
+            fieldMatrix = FieldMatrix;
 
-            CurrentCell = FieldMatrix[(int)UnitObject.transform.position.x, (int)UnitObject.transform.position.z];
+            currentCell = FieldMatrix[(int)UnitObject.transform.position.x, (int)UnitObject.transform.position.z];
 
-            CurrentPosition = CurrentCell.Position;
+            currentPosition = currentCell.Position;
 
-            Counter = 0;
+            counter = 0;
 
-            FieldSide = FieldMatrix.GetLength(0);
+            fieldSide = FieldMatrix.GetLength(0);
             
             FirstWave();
         }
@@ -134,8 +121,8 @@ namespace Assets.Scripts.Helpers
         /// <param name="FieldMatrix">Матрица поля</param>
         public void GetMatrixUpdate(FieldPoint[,] FieldMatrix)
         {
-            this.FieldMatrix = FieldMatrix;
-            DeadEnd = false;
+            this.fieldMatrix = FieldMatrix;
+            deadEnd = false;
         }
 
         /// <summary>
@@ -144,12 +131,12 @@ namespace Assets.Scripts.Helpers
         /// <param name="MarkedPoint">Отмеченная на карте точка</param>
         public void GetMarkedPoint(FieldPoint MarkedCell)
         {
-            this.MarkedCell = MarkedCell;
+            this.markedCell = MarkedCell;
 
-            if(!Roam & (MarkedCell !=null && !MarkedCell.Equals(TargetCell)))
+            if(!roam & (markedCell != null && !markedCell.Equals(targetCell)))
             {
                 CanMove = false;
-                ReadyToMove = false;
+                readyToMove = false;
             }
         }
 
@@ -158,7 +145,7 @@ namespace Assets.Scripts.Helpers
         /// </summary>
         public void SwitchBehavior()
         {
-            Roam = !Roam;
+            roam = !roam;
             CanMove = false;
         }
 
@@ -181,7 +168,7 @@ namespace Assets.Scripts.Helpers
 
         public void LateUpdate(float Time)
         {
-            if (!ReadyToMove) return;
+            if (!readyToMove) return;
             GetDirection();
             Move(Time);
         }
@@ -191,7 +178,7 @@ namespace Assets.Scripts.Helpers
         /// </summary>
         private void CheckNextPoint()
         {
-            if(NextCell.Blocked)
+            if(nextCell.Blocked)
             {
                 CanMove = false;
             }
@@ -202,7 +189,7 @@ namespace Assets.Scripts.Helpers
         /// </summary>
         private void UpdateCurrentPosition()
         {
-            CurrentPosition = UnitObject.transform.position;
+            currentPosition = UnitObject.transform.position;
         }
 
         /// <summary>
@@ -210,36 +197,36 @@ namespace Assets.Scripts.Helpers
         /// </summary>
         private void GetNextCellToMove()
         {
-            if(CellToMove) return;
-            if (WayPoints != null && Counter <= WayPoints.Length - 1)
+            if(cellToMove) return;
+            if (wayPoints != null && counter <= wayPoints.Length - 1)
             {
-                if(WayPoints[Counter].Blocked)
+                if(wayPoints[counter].Blocked)
                 {
                     CanMove = false;
-                    ReadyToMove = false;
+                    readyToMove = false;
                     
-                    if(WayPoints[Counter].Equals(TargetCell))
+                    if(wayPoints[counter].Equals(targetCell))
                     {
-                        TargetCell = null;
+                        targetCell = null;
                     }
                     else
                     {
-                        NextCell = WayPoints[Counter];
+                        nextCell = wayPoints[counter];
                     }
                     
                 }
                 else
                 {
-                    NextCell = WayPoints[Counter];
-                    Counter++;
-                    CellToMove = true;
-                    ReadyToMove = true;
+                    nextCell = wayPoints[counter];
+                    counter++;
+                    cellToMove = true;
+                    readyToMove = true;
                 }
             }
             else
             {
                 CanMove = false;
-                ReadyToMove = false;
+                readyToMove = false;
             }
         }
 
@@ -248,7 +235,7 @@ namespace Assets.Scripts.Helpers
         /// </summary>
         private void GetDirection()
         {
-            CurrentDirection = NextCell.Position - CurrentPosition;
+            currentDirection = nextCell.Position - currentPosition;
         }
 
         /// <summary>
@@ -257,22 +244,22 @@ namespace Assets.Scripts.Helpers
         /// <param name="Time">Время</param>
         private void Move(float Time)
         {
-            if (Vector3.Distance(CurrentPosition, NextCell.Position) > 0.05f)
+            if (Vector3.Distance(currentPosition, nextCell.Position) > 0.05f)
             {
-                UnitObject.transform.Translate(CurrentDirection.normalized * (1.50f * Time), Space.World);
+                UnitObject.transform.Translate(currentDirection.normalized * (1.50f * Time), Space.World);
             }
             else
             {
-                UnitObject.transform.position = NextCell.Position;
-                CurrentCell = NextCell;
-                if(CurrentCell.Equals(TargetCell))
+                UnitObject.transform.position = nextCell.Position;
+                currentCell = nextCell;
+                if(currentCell.Equals(targetCell))
                 {
                     CanMove = false;
-                    Counter = 0;
-                    TargetCell = null;
+                    counter = 0;
+                    targetCell = null;
 
                 }
-                CellToMove = false;
+                cellToMove = false;
             }
         }
 
@@ -281,27 +268,27 @@ namespace Assets.Scripts.Helpers
         /// </summary>
         private void GetRandomPoint(RandomMode RandomMode)
         {
-            Temp = FieldMatrix[Random.Range(0, FieldSide), Random.Range(0, FieldSide)];
+            temp = fieldMatrix[Random.Range(0, fieldSide), Random.Range(0, fieldSide)];
 
             switch (RandomMode)
             {
                 case RandomMode.All:
 
-                    if (Temp.Equals(CurrentCell) | Temp.Blocked)
+                    if (temp.Equals(currentCell) | temp.Blocked)
                     {
                         GetRandomPoint(RandomMode);
                     }
-                    TargetCell = Temp;
+                    targetCell = temp;
 
                     break;
 
                 case RandomMode.NoMarked:
 
-                    if (Temp.Equals(CurrentCell) | Temp.Blocked | Temp.Marked)
+                    if (temp.Equals(currentCell) | temp.Blocked | temp.Marked)
                     {
                         GetRandomPoint(RandomMode);
                     }
-                    TargetCell = Temp;
+                    targetCell = temp;
 
                     break;
             }
@@ -313,33 +300,33 @@ namespace Assets.Scripts.Helpers
         /// </summary>
         private void Wave()
         {
-            if(DeadEnd)return;
+            if(deadEnd)return;
 
-            switch(Roam)
+            switch(roam)
             {
                 case true:
 
-                    if (TargetCell == null)
+                    if (targetCell == null)
                     {
                         GetRandomPoint(RandomMode.All);
 
-                        WayPoints = WaveAlgorithm.ShortWay(FieldMatrix, CurrentCell, TargetCell);
+                        wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
 
-                        if(WayPoints == null)
+                        if(wayPoints == null)
                         {
-                            DeadEnd = WaveAlgorithm.NoWay(FieldMatrix, CurrentCell);
-                            if(DeadEnd)
+                            deadEnd = WaveAlgorithm.NoWay(fieldMatrix, currentCell);
+                            if(deadEnd)
                             {
-                                NextCell = CurrentCell;
-                                TargetCell = null;
+                                nextCell = currentCell;
+                                targetCell = null;
                                 return;
                             }
                             GetRandomPoint(RandomMode.All);
                             Wave();
                         }
 
-                        CellToMove = false;
-                        Counter = 0;
+                        cellToMove = false;
+                        counter = 0;
 
                         GetNextCellToMove();
 
@@ -348,25 +335,25 @@ namespace Assets.Scripts.Helpers
                         break;
                     }
 
-                    if (NextCell.Blocked | WayPoints == null)
+                    if (nextCell.Blocked | wayPoints == null)
                     {
-                        WayPoints = WaveAlgorithm.ShortWay(FieldMatrix, CurrentCell, TargetCell);
+                        wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
 
-                        if(WayPoints == null)
+                        if(wayPoints == null)
                         {
-                            DeadEnd = WaveAlgorithm.NoWay(FieldMatrix, CurrentCell);
-                            if(DeadEnd)
+                            deadEnd = WaveAlgorithm.NoWay(fieldMatrix, currentCell);
+                            if(deadEnd)
                             {
-                                NextCell = CurrentCell;
-                                TargetCell = null;
+                                nextCell = currentCell;
+                                targetCell = null;
                                 return;
                             }
                             GetRandomPoint(RandomMode.All);
                             Wave();
                         }
 
-                        CellToMove = false;
-                        Counter = 0;
+                        cellToMove = false;
+                        counter = 0;
 
                         GetNextCellToMove();
 
@@ -379,20 +366,20 @@ namespace Assets.Scripts.Helpers
 
                 case false:
 
-                    if(MarkedCell == null)
+                    if(markedCell == null)
                     {
                         GetRandomPoint(RandomMode.NoMarked);
 
-                        WayPoints = WaveAlgorithm.ShortWay(FieldMatrix, CurrentCell, TargetCell);
+                        wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
 
-                        if (WayPoints == null)
+                        if (wayPoints == null)
                         {
-                            DeadEnd = WaveAlgorithm.NoWay(FieldMatrix, CurrentCell);
-                            if (DeadEnd) return;
+                            deadEnd = WaveAlgorithm.NoWay(fieldMatrix, currentCell);
+                            if (deadEnd) return;
                         }
 
-                        CellToMove = false;
-                        Counter = 0;
+                        cellToMove = false;
+                        counter = 0;
 
                         GetNextCellToMove();
 
@@ -401,21 +388,21 @@ namespace Assets.Scripts.Helpers
 
                     else
                     {
-                        TargetCell = MarkedCell;
+                        targetCell = markedCell;
 
-                        WayPoints = WaveAlgorithm.ShortWay(FieldMatrix, CurrentCell, TargetCell);
+                        wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
 
-                        if(WayPoints == null)
+                        if(wayPoints == null)
                         {
-                            DeadEnd = WaveAlgorithm.NoWay(FieldMatrix, CurrentCell);
-                            if (DeadEnd) return;
-                            MarkedCell = GetReserveMarkedPoint?.Invoke();
-                            if (MarkedCell == null) return;
+                            deadEnd = WaveAlgorithm.NoWay(fieldMatrix, currentCell);
+                            if (deadEnd) return;
+                            markedCell = GetReserveMarkedPoint?.Invoke();
+                            if (markedCell == null) return;
                             Wave();
                         }
 
-                        CellToMove = false;
-                        Counter = 0;
+                        cellToMove = false;
+                        counter = 0;
 
                         GetNextCellToMove();
 
@@ -432,7 +419,7 @@ namespace Assets.Scripts.Helpers
         {
             GetRandomPoint(RandomMode.All);
 
-            WayPoints = WaveAlgorithm.ShortWay(FieldMatrix, CurrentCell, TargetCell);
+            wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
 
             GetNextCellToMove();
         }

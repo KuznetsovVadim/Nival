@@ -1,8 +1,4 @@
-﻿using Assets.Scripts.Controllers;
-using Assets.Scripts.Models;
-using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using Assets.Scripts.Models;
 using UnityEngine;
 
 namespace Assets.Scripts.Helpers
@@ -12,9 +8,9 @@ namespace Assets.Scripts.Helpers
     /// </summary>
     public class Cell:MonoBehaviour
     {
-        private GameObject Block;
+        private GameObject block;
 
-        private MeshRenderer Renderer;
+        private MeshRenderer cellRenderer;
 
         public Vector3 Position { get; private set; }
 
@@ -24,7 +20,7 @@ namespace Assets.Scripts.Helpers
 
         public bool Marked { get; private set; }
 
-        public bool Locked { get; private set; }
+        private bool locked;
 
         public int X
         {
@@ -42,7 +38,7 @@ namespace Assets.Scripts.Helpers
             }
         }
 
-        private CellChangies Changies;
+        private CellChangies changies;
 
         public event CellClicked OnClickEvent;
 
@@ -50,15 +46,15 @@ namespace Assets.Scripts.Helpers
         {
             Position = new Vector3(gameObject.transform.position.x, 0.3f, gameObject.transform.position.z);
             Name = gameObject.name;
-            Block = gameObject.transform.Find("Block").gameObject;
+            block = gameObject.transform.Find("Block").gameObject;
 
-            Renderer = gameObject.GetComponent<MeshRenderer>();
+            cellRenderer = gameObject.GetComponent<MeshRenderer>();
 
-            Renderer.material.color = Color.yellow;
+            cellRenderer.material.color = Color.yellow;
 
             Blocked = false;
             Marked = false;
-            Locked = false;
+            locked = false;
 
         }
 
@@ -83,9 +79,9 @@ namespace Assets.Scripts.Helpers
             {
                 case MouseClick.LeftButton:
 
-                    if(Locked) return;
+                    if(locked) return;
 
-                    Changies = ChangiesStatus(Click);
+                    changies = ChangiesStatus(Click);
 
                     Blocked = !Blocked;
 
@@ -95,7 +91,7 @@ namespace Assets.Scripts.Helpers
 
                 case MouseClick.RightButton:
 
-                    Changies = ChangiesStatus(Click);
+                    changies = ChangiesStatus(Click);
 
                     Marked = !Marked;
 
@@ -104,7 +100,7 @@ namespace Assets.Scripts.Helpers
                     break;
             }
 
-            OnClickEvent?.Invoke(this, Changies);
+            OnClickEvent?.Invoke(this, changies);
         }
 
         /// <summary>
@@ -139,14 +135,14 @@ namespace Assets.Scripts.Helpers
         {
             if(Blocked)
             {
-                Renderer.material.color = Color.red;
-                Block.SetActive(true);
+                cellRenderer.material.color = Color.red;
+                block.SetActive(true);
                 Marked = false;
             }
             else
             {
-                Renderer.material.color = Color.yellow;
-                Block.SetActive(false);
+                cellRenderer.material.color = Color.yellow;
+                block.SetActive(false);
             }
         }
 
@@ -157,24 +153,24 @@ namespace Assets.Scripts.Helpers
         {
             if (Marked)
             {
-                Renderer.material.color = Color.green;
+                cellRenderer.material.color = Color.green;
                 Blocked = false;
-                Block.SetActive(false);
+                block.SetActive(false);
             }
             else
             {
-                Renderer.material.color = Color.yellow;
+                cellRenderer.material.color = Color.yellow;
             }
         }
 
         private void OnTriggerStay(Collider other)
         {
-            Locked = true;
+            locked = true;
         }
 
         private void OnTriggerExit(Collider other)
         {
-            Locked = false;
+            locked = false;
         }
     }
 }
