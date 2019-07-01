@@ -32,7 +32,7 @@ namespace Assets.Scripts.Controllers
             cell = Cell;
             unit = Unit;
             fieldSide = Random.Range(5, 10);
-            unitsCount = Random.Range(5, 5);
+            unitsCount = Random.Range(1, 5);
             
             Field = new Cell[fieldSide, fieldSide];
             Units = new Unit[unitsCount];
