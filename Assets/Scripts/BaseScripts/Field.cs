@@ -45,7 +45,7 @@ namespace Assets.Scripts.Controllers
                     if(Cell.Marked)
                     {
                         MarkedCells.Add(FieldMatrix[Cell.X, Cell.Z].Point(false, true));
-                        FieldChanged?.Invoke(null, MarkedCells);
+                        FieldChanged?.Invoke(FieldMatrix, MarkedCells);
                     }
                     else if(Cell.Blocked)
                     {

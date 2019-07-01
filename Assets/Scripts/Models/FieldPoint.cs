@@ -74,7 +74,7 @@ namespace Assets.Scripts.Models
         /// <returns></returns>
         public PointModel CreatePoint()
         {
-            return new PointModel((int)Position.x, (int)Position.z, Side, Blocked);
+            return new PointModel((int)Position.x, (int)Position.z, Side, Blocked, Marked);
         }
     }
 }

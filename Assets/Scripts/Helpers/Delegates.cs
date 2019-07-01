@@ -51,6 +51,7 @@ namespace Assets.Scripts.Helpers
     public enum UnitState
     {
         Roam,
-        Follow
+        Follow,
+        FirstFree
     }
 }

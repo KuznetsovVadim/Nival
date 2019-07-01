@@ -37,7 +37,7 @@ namespace Assets.Scripts.Helpers
         /// <param name="StartPoint"></param>
         /// <param name="TargetPoint"></param>
         /// <returns></returns>
-        public static FieldPoint[] ShortWay(FieldPoint[,] SourceMatrix, FieldPoint StartPoint, UnitState UnitSate)
+        public static FieldPoint[] ShortWay(FieldPoint[,] SourceMatrix, FieldPoint StartPoint, UnitState UnitSate, List<FieldPoint> markedCells = null)
         {
             Queue<PointModel> cellsQueue = new Queue<PointModel>();
             
@@ -55,13 +55,14 @@ namespace Assets.Scripts.Helpers
 
             cellsQueue.Enqueue(start);
             
-            while (cellsQueue.Count > 0 & end.StepNumber != 0)
+            while (cellsQueue.Count > 0 & end.StepNumber == 0)
             {
-                AllDirections(matrix, cellsQueue, step, WaveMode.Steps, UnitSate, ref end);
+                AllDirections(matrix, cellsQueue, step, WaveMode.Steps, UnitSate, ref end, markedCells);
 
-                if(cellsQueue.Peek().Equals(first))
+                if (cellsQueue.Peek().Equals(first))
                 {
                     step++;
+                    first = cellsQueue.Last();
                 }
 
                 cellsQueue.Dequeue();
@@ -117,7 +118,7 @@ namespace Assets.Scripts.Helpers
 
             while (end.StepNumber == 0 & cellsQueue.Count > 0)
             {
-                AllDirections(matrix, cellsQueue, step, WaveMode.Steps);
+                ReachPoint(matrix, cellsQueue, step);
 
                 if (cellsQueue.Peek().Equals(last))
                 {
@@ -157,61 +158,75 @@ namespace Assets.Scripts.Helpers
         #region StepsAndRoutes
 
         /// <summary>
-        /// Находит путь к цели юнита
+        /// Проверяет все доступные направления движения
         /// </summary>
-        /// <param name="Model"></param>
         /// <param name="Matrix"></param>
         /// <param name="CellsQueue"></param>
         /// <param name="Step"></param>
-        private static void SetStep(PointModel Model, PointModel[,] Matrix, Queue<PointModel> CellsQueue, int Step, UnitState UnitState, ref bool TargetFound)
+        /// <param name="mode"></param>
+        private static void AllDirections(PointModel[,] Matrix, Queue<PointModel> CellsQueue, int Step, WaveMode mode, UnitState UnitSate, ref PointModel EndPoint, List<FieldPoint> markedCells = null)
         {
-            int i = Model.X;
-            int j = Model.Z;
-            
-            if (Matrix[i, j].StepNumber != 0 | Matrix[i, j].Blocked) return;
+            PointModel currentCell = CellsQueue.Peek();
 
-            Matrix[i, j].SetStep(Step);
+            bool EndMethod = false;
 
-            switch (UnitState)
+            PointModel[] Directions = SetDirections(currentCell);
+
+            switch (mode)
             {
-                case UnitState.Roam:
-                    
-                    TargetFound = true;
+                case WaveMode.Steps:
 
+                    int RandomMove = Random.Range(0, Directions.Length - 1);
+
+                    SetStep(Directions[RandomMove], Matrix, CellsQueue, Step, UnitSate, ref EndMethod, markedCells);
+
+                    if (EndMethod)
+                    {
+                        EndPoint = CellsQueue.Last();
+                        return;
+                    }
+
+                    for (int i = 0; i < Directions.Length; i++)
+                    {
+                        SetStep(Directions[i], Matrix, CellsQueue, Step, UnitSate, ref EndMethod, markedCells);
+
+                        if (EndMethod)
+                        {
+                            EndPoint = CellsQueue.Last();
+                            return;
+                        }
+                    }
                     break;
 
-                case UnitState.Follow:
+                case WaveMode.Route:
 
-                    if(Matrix[i, j].Marked) TargetFound = true;
+                    for (int i = 0; i < Directions.Length; i++)
+                    {
+                        if (EndMethod) return;
+                        SetRoute(Directions[i], Matrix, CellsQueue, Step, ref EndMethod);
+                    }
 
                     break;
             }
-
-            CellsQueue.Enqueue(Matrix[i, j]);
         }
-
+        
         /// <summary>
-        /// Создает маршрут к цели юнита
+        /// Проверяет доступность целевой точки
         /// </summary>
-        /// <param name="Model"></param>
         /// <param name="Matrix"></param>
         /// <param name="CellsQueue"></param>
         /// <param name="Step"></param>
-        /// <param name="EndMethod"></param>
-        private static void SetRoute(PointModel Model, PointModel[,] Matrix, Queue<PointModel> CellsQueue, int Step, ref bool EndMethod)
+        private static void ReachPoint(PointModel[,] Matrix, Queue<PointModel> CellsQueue, int Step)
         {
-            int i = Model.X;
-            int j = Model.Z;
-            
-            if (Matrix[i, j].StepNumber == 0 | Matrix[i, j].Blocked) return;
+            PointModel currentCell = CellsQueue.Peek();
+            PointModel[] Directions = SetDirections(currentCell);
 
-            if (Matrix[i, j].StepNumber == Step)
+            for (int i = 0; i < Directions.Length; i++)
             {
-                CellsQueue.Enqueue(Matrix[i, j]);
-                EndMethod = true;
+                TargetSteps(Directions[i], Matrix, CellsQueue, Step);
             }
         }
-
+        
         /// <summary>
         /// Просчет возможных направлений движения
         /// </summary>
@@ -260,7 +275,7 @@ namespace Assets.Scripts.Helpers
                     };
 
                 case Orientation.RightSide:
-                    
+
                     return temp = new PointModel[5]
                     {
                         new PointModel(CurrentCell.X-1, CurrentCell.Z),
@@ -306,7 +321,7 @@ namespace Assets.Scripts.Helpers
                         new PointModel(CurrentCell.X+1, CurrentCell.Z),
                         new PointModel(CurrentCell.X+1, CurrentCell.Z-1),
                         new PointModel(CurrentCell.X,   CurrentCell.Z-1),
-                        
+
                     };
 
                 case Orientation.TopRightCorner:
@@ -335,59 +350,97 @@ namespace Assets.Scripts.Helpers
         }
 
         /// <summary>
-        /// Проверяет все доступные направления движения
+        /// Шагает до цели
         /// </summary>
+        /// <param name="Model"></param>
         /// <param name="Matrix"></param>
         /// <param name="CellsQueue"></param>
         /// <param name="Step"></param>
-        /// <param name="mode"></param>
-        private static void AllDirections(PointModel[,] Matrix, Queue<PointModel> CellsQueue, int Step, WaveMode mode, UnitState UnitSate, ref PointModel EndPoint)
+        private static void TargetSteps(PointModel Model, PointModel[,] Matrix, Queue<PointModel> CellsQueue, int Step)
         {
-            PointModel currentCell = CellsQueue.Peek();
+            int i = Model.X;
+            int j = Model.Z;
 
-            bool EndMethod = false;
+            if (Matrix[i, j].StepNumber != 0 | Matrix[i, j].Blocked) return;
 
-            PointModel[] Directions = SetDirections(currentCell);
+            Matrix[i, j].SetStep(Step);
+            CellsQueue.Enqueue(Matrix[i, j]);
+        }
+        
+        /// <summary>
+        /// Находит путь к цели юнита
+        /// </summary>
+        /// <param name="Model"></param>
+        /// <param name="Matrix"></param>
+        /// <param name="CellsQueue"></param>
+        /// <param name="Step"></param>
+        private static void SetStep(PointModel Model, PointModel[,] Matrix, Queue<PointModel> CellsQueue, int Step, UnitState UnitState, ref bool TargetFound, List<FieldPoint> markedCells = null)
+        {
+            int i = Model.X;
+            int j = Model.Z;
+            
+            if (Matrix[i, j].StepNumber != 0 | Matrix[i, j].Blocked) return;
 
-            switch (mode)
+            Matrix[i, j].SetStep(Step);
+
+            switch (UnitState)
             {
-                case WaveMode.Steps:
+                case UnitState.Roam:
+                    
+                    TargetFound = true;
 
-                    int RandomMove = Random.Range(0, Directions.Length - 1);
-
-                    SetStep(Directions[RandomMove], Matrix, CellsQueue, Step, UnitSate, ref EndMethod);
-
-                    if(EndMethod)
-                    {
-                        EndPoint = Directions[RandomMove];
-                        return;
-                    }
-
-                    for (int i = 0; i < Directions.Length; i++)
-                    {
-                        if (EndMethod)
-                        {
-                            EndPoint = Directions[i];
-                            return;
-                        }
-
-                        SetStep(Directions[i], Matrix, CellsQueue, Step, UnitSate, ref EndMethod);
-                        
-                    }
                     break;
 
-                case WaveMode.Route:
+                case UnitState.Follow:
 
-                    for (int i = 0; i < Directions.Length; i++)
+                    if(Matrix[i, j].Marked)
                     {
-                        if (EndMethod) return;
-                        SetRoute(Directions[i], Matrix, CellsQueue, Step, ref EndMethod);
+                        for (int m = 0; m < markedCells.Count; m++)
+                        {
+                            if(markedCells[m].X == i & markedCells[m].Z == j)
+                            {
+                                TargetFound = true;
+                            }
+                        }
+                    }
+
+                    break;
+
+                case UnitState.FirstFree:
+
+                    if(!Matrix[i, j].Marked)
+                    {
+                        TargetFound = true;
                     }
 
                     break;
             }
+
+            CellsQueue.Enqueue(Matrix[i, j]);
         }
 
+        /// <summary>
+        /// Создает маршрут к цели юнита
+        /// </summary>
+        /// <param name="Model"></param>
+        /// <param name="Matrix"></param>
+        /// <param name="CellsQueue"></param>
+        /// <param name="Step"></param>
+        /// <param name="EndMethod"></param>
+        private static void SetRoute(PointModel Model, PointModel[,] Matrix, Queue<PointModel> CellsQueue, int Step, ref bool EndMethod)
+        {
+            int i = Model.X;
+            int j = Model.Z;
+            
+            if (Matrix[i, j].StepNumber == 0 | Matrix[i, j].Blocked) return;
+
+            if (Matrix[i, j].StepNumber == Step)
+            {
+                CellsQueue.Enqueue(Matrix[i, j]);
+                EndMethod = true;
+            }
+        }
+        
         #endregion
     }
 }

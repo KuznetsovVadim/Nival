@@ -55,8 +55,10 @@ namespace Assets.Scripts.Controllers
         public void SetChanges(FieldPoint[,] FieldMatrix, List<FieldPoint> MarkedCells)
         {
             MapChanged.Invoke(FieldMatrix);
-            markedCells = MarkedCells;
-            SendMarkedPointsToUnits();
+            if(MarkedCells != null)
+            {
+                SendMarkedPointsToUnits();
+            }
         }
 
         /// <summary>
@@ -64,9 +66,16 @@ namespace Assets.Scripts.Controllers
         /// </summary>
         private void SendMarkedPointsToUnits()
         {
+            reservePoints.Clear();
+
+            foreach (var Cell in markedCells)
+            {
+                reservePoints.Add(Cell);
+            }
+
             for (int i = 0; i < units.Length; i++)
             {
-                units[i].GetMarkedPointsUpdate(markedCells);
+                units[i].GetMarkedPointsUpdate(reservePoints);
             }
         }
 

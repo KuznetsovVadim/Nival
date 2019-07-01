@@ -73,9 +73,7 @@ namespace Assets.Scripts.Helpers
         private FieldPoint temp;
 
         #endregion
-
-        private int fieldSide;
-
+        
         private int counter;
 
         public bool Roam { get; private set; } = true;
@@ -88,9 +86,11 @@ namespace Assets.Scripts.Helpers
 
         private bool deadEnd = false;
 
-        private bool noMarkedPointToReach = false;
-
         public bool CanMove { get; private set; } = false;
+
+        private bool MarkedPointReached = false;
+
+        private bool RandomMove = false;
 
         /// <summary>
         /// Создает модель юнита
@@ -115,6 +115,8 @@ namespace Assets.Scripts.Helpers
             currentCell = FieldMatrix[(int)UnitObject.transform.position.x, (int)UnitObject.transform.position.z];
 
             currentPosition = currentCell.Position;
+
+            Wave();
         }
 
         /// <summary>
@@ -125,17 +127,7 @@ namespace Assets.Scripts.Helpers
         public void GetMatrixUpdate(FieldPoint[,] FieldMatrix)
         {
             fieldMatrix = FieldMatrix;
-        }
-
-        /// <summary>
-        /// Проверяет наличие отмеченной точки
-        /// </summary>
-        /// <returns></returns>
-        public bool HasMarkedPoint()
-        {
-            if(MarkedCell != null && MarkedCell.Marked) return true;
-            MarkedCell = null;
-            return false;
+            deadEnd = false;
         }
 
         /// <summary>
@@ -145,6 +137,19 @@ namespace Assets.Scripts.Helpers
         public void GetMarkedPointsUpdate(List<FieldPoint> markedCells)
         {
             this.markedCells = markedCells;
+            RandomMove = false;
+            if (!Roam)
+            {
+                if (currentCell == MarkedCell & markedCells.Contains(currentCell))
+                {
+                    markedCells.Remove(MarkedCell);
+                    nextCell = currentCell;
+                    CanMove = true;
+                    return;
+                }
+                CanMove = false;
+                MarkedPointReached = false;
+            }
         }
 
         /// <summary>
@@ -154,14 +159,18 @@ namespace Assets.Scripts.Helpers
         {
             Roam = !Roam;
             CanMove = false;
+            MarkedPointReached = false;
+            RandomMove = false;
         }
 
         public void Update()
         {
-            if(CanMove)
+            if (deadEnd) return;
+            if (CanMove)
             {
                 UpdateCurrentPosition();
-                GetDirection();
+                CellCheck();
+                GetNextCellToMove();
             }
             else
             {
@@ -171,7 +180,8 @@ namespace Assets.Scripts.Helpers
 
         public void LateUpdate(float Time)
         {
-
+            if (!readyToMove) return;
+            Move(Time);
         }
 
         /// <summary>
@@ -183,21 +193,59 @@ namespace Assets.Scripts.Helpers
         }
 
         /// <summary>
+        /// Проверка следующей точки
+        /// </summary>
+        private void CellCheck()
+        {
+            switch (Roam)
+            {
+                case true:
+
+                    if(nextCell.Blocked)
+                    {
+                        CanMove = false;
+                        readyToMove = false;
+                        return;
+                    }
+                    readyToMove = true;
+
+                    break;
+
+                case false:
+
+                    if (MarkedPointReached & currentCell.Marked) return;
+                    if (nextCell.Blocked || !markedCells.Contains(targetCell) || !WaveAlgorithm.CanReach(fieldMatrix, currentCell, targetCell))
+                    {
+                        if(!RandomMove)
+                        {
+                            CanMove = false;
+                            readyToMove = false;
+                            return;
+                        }
+                    }
+                    readyToMove = true;
+
+                    break;
+            }
+        }
+
+        /// <summary>
         /// Получаем следующую точку назначения
         /// </summary>
         private void GetNextCellToMove()
         {
-            if (cellToMove) return;
-            if (counter < wayPoints.Length)
+            if(cellToMove || !CanMove) return;
+            else
             {
-                if(wayPoints[counter].Blocked)
+                if(counter < wayPoints.Length && !wayPoints[counter].Blocked)
                 {
-                    CanMove = false;
-                    Wave();
+                    nextCell = wayPoints[counter];
+                    cellToMove = true;
+                    counter++;
                 }
                 else
                 {
-
+                    CanMove = false;
                 }
             }
         }
@@ -216,37 +264,111 @@ namespace Assets.Scripts.Helpers
         /// <param name="Time">Время</param>
         private void Move(float Time)
         {
+            GetDirection();
+
             if (Vector3.Distance(currentPosition, nextCell.Position) > 0.05f)
             {
-                UnitObject.transform.Translate(currentDirection.normalized * (1.50f * Time), Space.World);
+                UnitObject.transform.Translate(currentDirection.normalized * (1.5f * Time), Space.World);
             }
             else
             {
-                UnitObject.transform.position = nextCell.Position;
                 currentCell = nextCell;
+                UnitObject.transform.position = nextCell.Position;
                 if(currentCell.Equals(targetCell))
                 {
-                    CanMove = false;
-                    counter = 0;
-                    targetCell = null;
-
+                    if(Roam)
+                    {
+                        CanMove = false;
+                    }
+                    else
+                    {
+                        if (currentCell.Marked & MarkedPointReached & !markedCells.Contains(currentCell)) return;
+                        else
+                        {
+                            if(markedCells.Contains(currentCell) & currentCell.Marked & !MarkedPointReached)
+                            {
+                                markedCells.Remove(currentCell);
+                                MarkedPointReached = true;
+                                return;
+                            }
+                            else
+                            {
+                                CanMove = false;
+                                MarkedPointReached = false;
+                            }
+                        }
+                        
+                    }
                 }
                 cellToMove = false;
             }
+            readyToMove = false;
         }
         
-
+        /// <summary>
+        /// Запускает волну для поиска пути
+        /// </summary>
         private void Wave()
         {
-            wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, Roam ? UnitState.Roam : UnitState.Follow);
+            if(deadEnd) return;
+            switch(Roam)
+            {
+                case true:
 
+                    wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, UnitState.Roam);
+
+                    break;
+
+                case false:
+                    
+                    if(markedCells.Count == 0)
+                    {
+                        RandomMove = true;
+                        wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, UnitState.FirstFree);
+                        break;
+                    }
+
+                    if (RandomMove)
+                    {
+                        wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, UnitState.FirstFree);
+                        break;
+                    }
+
+                    wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, UnitState.Follow, markedCells);
+
+                    break;
+            }
+            
             if(wayPoints == null)
             {
-                CanMove = false;
+                deadEnd = WaveAlgorithm.NoWay(fieldMatrix, currentCell);
+                if (deadEnd) return;
+                RandomMove = true;
+                return;
             }
             else
             {
-                CanMove = true;
+                switch (Roam)
+                {
+                    case true:
+
+                        targetCell = wayPoints[wayPoints.Length - 1];
+                        cellToMove = false;
+                        counter = 0;
+                        CanMove = true;
+                        GetNextCellToMove();
+                        break;
+
+                    case false:
+
+                        targetCell = wayPoints[wayPoints.Length - 1];
+                        MarkedCell = targetCell;
+                        cellToMove = false;
+                        counter = 0;
+                        CanMove = true;
+                        GetNextCellToMove();
+                        break;
+                }
             }
         }
     }
