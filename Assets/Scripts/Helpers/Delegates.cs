@@ -47,4 +47,10 @@ namespace Assets.Scripts.Helpers
         DownLeftCorner,
         None
     }
+
+    public enum UnitState
+    {
+        Roam,
+        Follow
+    }
 }

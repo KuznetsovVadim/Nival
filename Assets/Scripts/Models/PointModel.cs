@@ -9,16 +9,18 @@ namespace Assets.Scripts.Models
         public int Z { get; private set; }
 
         public bool Blocked { get; private set; }
+        public bool Marked { get; private set; }
 
         public int StepNumber { get; private set; }
 
         public Orientation Orientation { get; private set; }
 
-        public PointModel(int X, int Z, int Side = 0, bool Blocked = false)
+        public PointModel(int X, int Z, int Side = 0, bool Blocked = false, bool Marked = false)
         {
             this.X = X;
             this.Z = Z;
             this.Blocked = Blocked;
+            this.Marked = Marked;
             Orientation = Orientation.None;
             StepNumber = 0;
 

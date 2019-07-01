@@ -80,6 +80,8 @@ namespace Assets.Scripts.Helpers
 
         public bool Roam { get; private set; } = true;
 
+        public bool Follow { get; private set; } = true;
+
         private bool readyToMove = false;
 
         private bool cellToMove = false;
@@ -88,7 +90,7 @@ namespace Assets.Scripts.Helpers
 
         private bool noMarkedPointToReach = false;
 
-        public bool CanMove { get; private set; } = true;
+        public bool CanMove { get; private set; } = false;
 
         /// <summary>
         /// Создает модель юнита
@@ -113,12 +115,6 @@ namespace Assets.Scripts.Helpers
             currentCell = FieldMatrix[(int)UnitObject.transform.position.x, (int)UnitObject.transform.position.z];
 
             currentPosition = currentCell.Position;
-
-            counter = 0;
-
-            fieldSide = FieldMatrix.GetLength(0);
-            
-            FirstWave();
         }
 
         /// <summary>
@@ -129,8 +125,6 @@ namespace Assets.Scripts.Helpers
         public void GetMatrixUpdate(FieldPoint[,] FieldMatrix)
         {
             fieldMatrix = FieldMatrix;
-            noMarkedPointToReach = false;
-            deadEnd = false;
         }
 
         /// <summary>
@@ -151,12 +145,6 @@ namespace Assets.Scripts.Helpers
         public void GetMarkedPointsUpdate(List<FieldPoint> markedCells)
         {
             this.markedCells = markedCells;
-            noMarkedPointToReach = false;
-
-            if (!Roam & (MarkedCell == null || !MarkedCell.Marked))
-            {
-                SetMarkedPoint();
-            }
         }
 
         /// <summary>
@@ -166,72 +154,24 @@ namespace Assets.Scripts.Helpers
         {
             Roam = !Roam;
             CanMove = false;
-
-            if(!Roam)
-            {
-                SetMarkedPoint();
-            }
-            else
-            {
-                MarkedCell = null;
-                noMarkedPointToReach = false;
-            }
-        }
-
-        /// <summary>
-        /// Находим отмеченную точку
-        /// </summary>
-        private void SetMarkedPoint()
-        {
-            if(noMarkedPointToReach) return;
-
-            for (int i = 0; i < markedCells.Count; i++)
-            {
-                if (CanReachPoint(markedCells[i]))
-                {
-                    MarkedCell = markedCells[i];
-                    markedCells.Remove(markedCells[i]);
-                    CanMove = false;
-                    return;
-                }
-            }
-            MarkedCell = null;
-            noMarkedPointToReach = true;
         }
 
         public void Update()
         {
-            UpdateCurrentPosition();
-
-            CheckNextPoint();
-            
             if(CanMove)
             {
-                GetNextCellToMove();
+                UpdateCurrentPosition();
+                GetDirection();
             }
             else
             {
                 Wave();
             }
-            
         }
 
         public void LateUpdate(float Time)
         {
-            if (!readyToMove) return;
-            GetDirection();
-            Move(Time);
-        }
 
-        /// <summary>
-        /// Проверяем ближайшую точку маршрута
-        /// </summary>
-        private void CheckNextPoint()
-        {
-            if(nextCell.Blocked)
-            {
-                CanMove = false;
-            }
         }
 
         /// <summary>
@@ -247,36 +187,18 @@ namespace Assets.Scripts.Helpers
         /// </summary>
         private void GetNextCellToMove()
         {
-            if(cellToMove) return;
-            if (wayPoints != null && counter <= wayPoints.Length - 1)
+            if (cellToMove) return;
+            if (counter < wayPoints.Length)
             {
                 if(wayPoints[counter].Blocked)
                 {
                     CanMove = false;
-                    readyToMove = false;
-                    
-                    if(wayPoints[counter].Equals(targetCell))
-                    {
-                        targetCell = null;
-                    }
-                    else
-                    {
-                        nextCell = wayPoints[counter];
-                    }
-                    
+                    Wave();
                 }
                 else
                 {
-                    nextCell = wayPoints[counter];
-                    counter++;
-                    cellToMove = true;
-                    readyToMove = true;
+
                 }
-            }
-            else
-            {
-                CanMove = false;
-                readyToMove = false;
             }
         }
 
@@ -313,167 +235,19 @@ namespace Assets.Scripts.Helpers
             }
         }
         
-        /// <summary>
-        /// Получение случайной точке на игровом поле, в качестве точки назначения
-        /// </summary>
-        private void GetRandomPoint()
-        {
-            temp = fieldMatrix[Random.Range(0, fieldSide), Random.Range(0, fieldSide)];
 
-            if (temp.Blocked)
-            {
-                GetRandomPoint();
-            }
-            targetCell = temp;
-
-        }
-
-        /// <summary>
-        /// Запускает волновой алгоритм поиска пути
-        /// </summary>
         private void Wave()
         {
-            if(deadEnd)return;
+            wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, Roam ? UnitState.Roam : UnitState.Follow);
 
-            switch(Roam)
+            if(wayPoints == null)
             {
-                case true:
-
-                    if (targetCell == null)
-                    {
-                        GetRandomPoint();
-
-                        wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
-
-                        if(wayPoints == null)
-                        {
-                            deadEnd = WaveAlgorithm.NoWay(fieldMatrix, currentCell);
-                            if(deadEnd)
-                            {
-                                nextCell = currentCell;
-                                targetCell = null;
-                                return;
-                            }
-                            GetRandomPoint();
-                            Wave();
-                        }
-
-                        cellToMove = false;
-                        counter = 0;
-
-                        GetNextCellToMove();
-
-                        CanMove = true;
-
-                        break;
-                    }
-
-                    if (nextCell.Blocked | wayPoints == null)
-                    {
-                        wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
-
-                        if(wayPoints == null)
-                        {
-                            deadEnd = WaveAlgorithm.NoWay(fieldMatrix, currentCell);
-                            if(deadEnd)
-                            {
-                                nextCell = currentCell;
-                                targetCell = null;
-                                return;
-                            }
-                            GetRandomPoint();
-                            Wave();
-                        }
-
-                        cellToMove = false;
-                        counter = 0;
-
-                        GetNextCellToMove();
-
-                        CanMove = true;
-                    }
-
-                    CanMove = true;
-
-                    break;
-
-                case false:
-
-                    if(MarkedCell == null)
-                    {
-                        GetRandomPoint();
-
-                        wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
-
-                        if (wayPoints == null)
-                        {
-                            deadEnd = WaveAlgorithm.NoWay(fieldMatrix, currentCell);
-                            if (deadEnd) return;
-                            GetRandomPoint();
-                            Wave();
-                        }
-
-                        cellToMove = false;
-                        counter = 0;
-
-                        GetNextCellToMove();
-
-                        CanMove = true;
-                    }
-
-                    else
-                    {
-                        if(!MarkedCell.Marked)
-                        {
-                            MarkedCell = null;
-                            return;
-                        }
-
-                        targetCell = MarkedCell;
-
-                        wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
-
-                        if(wayPoints == null)
-                        {
-                            deadEnd = WaveAlgorithm.NoWay(fieldMatrix, currentCell);
-                            if (deadEnd) return;
-                            if (!noMarkedPointToReach) SetMarkedPoint();
-                            if (MarkedCell == null) return;
-                            Wave();
-                        }
-
-                        cellToMove = false;
-                        counter = 0;
-
-                        GetNextCellToMove();
-
-                        CanMove = true;
-                    }
-                    break;
+                CanMove = false;
             }
-        }
-
-        /// <summary>
-        /// Рассчитывает начальную точку назначения и путь к ней
-        /// </summary>
-        private void FirstWave()
-        {
-            GetRandomPoint();
-
-            wayPoints = WaveAlgorithm.ShortWay(fieldMatrix, currentCell, targetCell);
-
-            GetNextCellToMove();
-        }
-
-        /// <summary>
-        /// Проверяет возможность дойти до точки
-        /// </summary>
-        /// <param name="targetCell"></param>
-        /// <returns></returns>
-        private bool CanReachPoint(FieldPoint targetCell)
-        {
-            if (!targetCell.Marked) return false;
-            return WaveAlgorithm.CanReach(fieldMatrix, currentCell, targetCell);
+            else
+            {
+                CanMove = true;
+            }
         }
     }
 }

@@ -54,24 +54,9 @@ namespace Assets.Scripts.Controllers
         /// <param name="MarkedCells">Список "отмеченных" ячеек игрового поля</param>
         public void SetChanges(FieldPoint[,] FieldMatrix, List<FieldPoint> MarkedCells)
         {
-            if(FieldMatrix != null & MarkedCells != null)
-            {
-                MapChanged.Invoke(FieldMatrix);
-                markedCells = MarkedCells;
-                SendMarkedPointsToUnits();
-            }
-            else
-            {
-                if(FieldMatrix != null)
-                {
-                    MapChanged.Invoke(FieldMatrix);
-                }
-                else
-                {
-                    markedCells = MarkedCells;
-                    SendMarkedPointsToUnits();
-                }
-            }
+            MapChanged.Invoke(FieldMatrix);
+            markedCells = MarkedCells;
+            SendMarkedPointsToUnits();
         }
 
         /// <summary>
@@ -79,40 +64,9 @@ namespace Assets.Scripts.Controllers
         /// </summary>
         private void SendMarkedPointsToUnits()
         {
-            reservePoints = new List<FieldPoint>();
-
-            foreach (var item in markedCells)
+            for (int i = 0; i < units.Length; i++)
             {
-                reservePoints.Add(item);
-            }
-
-            switch (units[0].Roam)
-            {
-                case true:
-
-                    for (int i = 0; i < units.Length; i++)
-                    {
-                        units[i].GetMarkedPointsUpdate(reservePoints);
-                    }
-
-                    break;
-
-                case false:
-
-                    for (int i = 0; i < units.Length; i++)
-                    {
-                        if(units[i].HasMarkedPoint())
-                        {
-                            reservePoints.Remove(units[i].MarkedCell);
-                        }
-                    }
-
-                    for (int i = 0; i < units.Length; i++)
-                    {
-                        units[i].GetMarkedPointsUpdate(reservePoints);
-                    }
-
-                    break;
+                units[i].GetMarkedPointsUpdate(markedCells);
             }
         }
 

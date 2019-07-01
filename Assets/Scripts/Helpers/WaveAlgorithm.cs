@@ -1,6 +1,7 @@
 ﻿using Assets.Scripts.Models;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace Assets.Scripts.Helpers
 {
@@ -36,31 +37,31 @@ namespace Assets.Scripts.Helpers
         /// <param name="StartPoint"></param>
         /// <param name="TargetPoint"></param>
         /// <returns></returns>
-        public static FieldPoint[] ShortWay(FieldPoint[,] SourceMatrix, FieldPoint StartPoint, FieldPoint TargetPoint)
+        public static FieldPoint[] ShortWay(FieldPoint[,] SourceMatrix, FieldPoint StartPoint, UnitState UnitSate)
         {
             Queue<PointModel> cellsQueue = new Queue<PointModel>();
             
             PointModel[,] matrix = SetMatrix(SourceMatrix);
 
             ref PointModel start = ref matrix[StartPoint.X, StartPoint.Z];
-            ref PointModel end = ref matrix[TargetPoint.X, TargetPoint.Z];
 
+            PointModel end = new PointModel();
+
+            PointModel first = start;
+            
             int step = 2;
 
             start.SetStep(1);
 
             cellsQueue.Enqueue(start);
-
-            PointModel last = cellsQueue.Last();
-
-            while (end.StepNumber == 0 & cellsQueue.Count > 0)
+            
+            while (cellsQueue.Count > 0 & end.StepNumber != 0)
             {
-                AllDirections(matrix, cellsQueue, step, WaveMode.Steps);
+                AllDirections(matrix, cellsQueue, step, WaveMode.Steps, UnitSate, ref end);
 
-                if (cellsQueue.Peek().Equals(last))
+                if(cellsQueue.Peek().Equals(first))
                 {
                     step++;
-                    last = cellsQueue.Last();
                 }
 
                 cellsQueue.Dequeue();
@@ -78,7 +79,7 @@ namespace Assets.Scripts.Helpers
 
             for (int i = step; i >= 0; i--)
             {
-                AllDirections(matrix, cellsQueue, step, WaveMode.Route);
+                AllDirections(matrix, cellsQueue, step, WaveMode.Route, UnitSate, ref end);
 
                 WayPoints[i] = SourceMatrix[cellsQueue.Peek().X, cellsQueue.Peek().Z];
 
@@ -162,15 +163,29 @@ namespace Assets.Scripts.Helpers
         /// <param name="Matrix"></param>
         /// <param name="CellsQueue"></param>
         /// <param name="Step"></param>
-        private static void SetStep(PointModel Model, PointModel[,] Matrix, Queue<PointModel> CellsQueue, int Step)
+        private static void SetStep(PointModel Model, PointModel[,] Matrix, Queue<PointModel> CellsQueue, int Step, UnitState UnitState, ref bool TargetFound)
         {
             int i = Model.X;
             int j = Model.Z;
-
-            if ((i < 0 || i > Matrix.GetLength(0) - 1) || (j < 0 || j > Matrix.GetLength(1) - 1)) return;
+            
             if (Matrix[i, j].StepNumber != 0 | Matrix[i, j].Blocked) return;
 
             Matrix[i, j].SetStep(Step);
+
+            switch (UnitState)
+            {
+                case UnitState.Roam:
+                    
+                    TargetFound = true;
+
+                    break;
+
+                case UnitState.Follow:
+
+                    if(Matrix[i, j].Marked) TargetFound = true;
+
+                    break;
+            }
 
             CellsQueue.Enqueue(Matrix[i, j]);
         }
@@ -187,8 +202,7 @@ namespace Assets.Scripts.Helpers
         {
             int i = Model.X;
             int j = Model.Z;
-
-            if ((i < 0 || i > Matrix.GetLength(0) - 1) || (j < 0 || j > Matrix.GetLength(1) - 1)) return;
+            
             if (Matrix[i, j].StepNumber == 0 | Matrix[i, j].Blocked) return;
 
             if (Matrix[i, j].StepNumber == Step)
@@ -327,7 +341,7 @@ namespace Assets.Scripts.Helpers
         /// <param name="CellsQueue"></param>
         /// <param name="Step"></param>
         /// <param name="mode"></param>
-        private static void AllDirections(PointModel[,] Matrix, Queue<PointModel> CellsQueue, int Step, WaveMode mode)
+        private static void AllDirections(PointModel[,] Matrix, Queue<PointModel> CellsQueue, int Step, WaveMode mode, UnitState UnitSate, ref PointModel EndPoint)
         {
             PointModel currentCell = CellsQueue.Peek();
 
@@ -339,9 +353,26 @@ namespace Assets.Scripts.Helpers
             {
                 case WaveMode.Steps:
 
+                    int RandomMove = Random.Range(0, Directions.Length - 1);
+
+                    SetStep(Directions[RandomMove], Matrix, CellsQueue, Step, UnitSate, ref EndMethod);
+
+                    if(EndMethod)
+                    {
+                        EndPoint = Directions[RandomMove];
+                        return;
+                    }
+
                     for (int i = 0; i < Directions.Length; i++)
                     {
-                        SetStep(Directions[i], Matrix, CellsQueue, Step);
+                        if (EndMethod)
+                        {
+                            EndPoint = Directions[i];
+                            return;
+                        }
+
+                        SetStep(Directions[i], Matrix, CellsQueue, Step, UnitSate, ref EndMethod);
+                        
                     }
                     break;
 
