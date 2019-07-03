@@ -214,17 +214,28 @@ namespace Assets.Scripts.Helpers
                 case false:
 
                     if (MarkedPointReached & currentCell.Marked) return;
-                    if (nextCell.Blocked || !markedCells.Contains(targetCell) || !WaveAlgorithm.CanReach(fieldMatrix, currentCell, targetCell))
+
+                    if (RandomMove)
                     {
-                        if(!RandomMove)
+                        if(nextCell.Blocked)
                         {
                             CanMove = false;
                             readyToMove = false;
                             return;
                         }
+                        readyToMove = true;
                     }
-                    readyToMove = true;
-
+                    else
+                    {
+                        if(nextCell.Blocked || !markedCells.Contains(targetCell) || !WaveAlgorithm.CanReach(fieldMatrix, currentCell, targetCell))
+                        {
+                            CanMove = false;
+                            readyToMove = false;
+                            return;
+                        }
+                        readyToMove = true;
+                        
+                    }
                     break;
             }
         }
